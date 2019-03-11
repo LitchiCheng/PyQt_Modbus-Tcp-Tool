@@ -66,6 +66,10 @@ class modbus_tcp_toolkit():
 
 class Example(QWidget):
 
+    di_status_label={}
+    di_order_label={}
+    button={}
+
     def __init__(self):
         super().__init__()
         
@@ -104,12 +108,12 @@ class Example(QWidget):
         connect_button.clicked.connect(self.buttonClicked)
         disconnect_button.clicked.connect(self.buttonClicked)
      
-        open_button = QPushButton("open", self)
-        close_button = QPushButton("ResetDO", self)
+        # open_button = QPushButton("open", self)
+        # close_button = QPushButton("ResetDO", self)
         #close_button.setFixedSize(75,25)
         #open_button.setFixedSize(75,25)
-        open_button.clicked.connect(self.buttonClicked)            
-        close_button.clicked.connect(self.buttonClicked)
+        # open_button.clicked.connect(self.buttonClicked)            
+        # close_button.clicked.connect(self.buttonClicked)
 
         self.grid.addWidget(self.ip_address_label, 1, 0)
         self.grid.addWidget(self.ip_address_edit, 1, 1)
@@ -125,8 +129,8 @@ class Example(QWidget):
         self.grid.addWidget(disconnect_button, 6, 1)
 
         self.grid.addWidget(self.connect_status_label, 7, 0)
-        self.grid.addWidget(open_button, 8, 0)
-        self.grid.addWidget(close_button, 8, 1)
+        # self.grid.addWidget(open_button, 8, 0)
+        # self.grid.addWidget(close_button, 8, 1)
         self.grid.setSpacing(45)
         # self.statusBar()
         # self.resize(550,400)
@@ -146,20 +150,16 @@ class Example(QWidget):
 
     def buttonClicked(self):
         sender = self.sender()
-        self.di_status_label={}
-        self.di_order_label={}
-        self.button={}
+       
         if "open" == sender.text() :
             if self.is_connected == True:
                 self.modbus_master.writeSingleCoilRegister(1,0,1)
         elif "ResetDO" == sender.text():
             if self.is_connected == True:
-                self.modbus_master.writeSingleCoilRegister()
-        elif "query" == sender.text():
-            if self.is_connected == True:
-                status = self.modbus_master.readDiscreteRegister(1,32,8)
-                str1 = "DI状态为:" + str(status[0])
-                self.di_status_label.setText(str1)
+                try:
+                    self.status = self.modbus_master.writeSingleCoilRegister()
+                except:
+                    print(self.status)
         elif "connect" == sender.text():
             self.ip_address_edit.setEnabled(False)
             self.di_num_edit.setEnabled(False)
@@ -210,19 +210,27 @@ class Example(QWidget):
     def updateText(self):
         if self.is_connected == True:
             status = self.modbus_master.readDiscreteRegister(1,32,int(self.di_num_edit.text()))
-            # print(status[7])
+            # print(status)
             # print(self.di_status_label[3])
             # str1 = "DI状态为:" + str(status[0])
-            for i in range(1, 9):
-                self.di_status_label[i-1].setText(str(status[i-1]))
+            for i in range(1, int(self.di_num_edit.text())+1):
+                try:
+                    self.di_status_label[i-1].setText(str(status[i-1]))
+                except:
+                    print("updataText failed...")
             #self.di_status_label.setText(str1)
             # self.statusBar().showMessage("查询操作")
     
     def doClicked(self):
         sender = self.sender()
+        do_status = self.modbus_master.readCoilsRegister(1, 0 ,int(self.do_num_edit.text()))
+        # print(do_status)
         if self.is_connected == True:
             print("DO-"+sender.text())
-            self.modbus_master.writeSingleCoilRegister(1,(int(sender.text())-1),1)
+            if (do_status[(int(sender.text())-1)] == 0):
+                self.modbus_master.writeSingleCoilRegister(1,(int(sender.text())-1),1)
+            else:
+                self.modbus_master.writeSingleCoilRegister(1,(int(sender.text())-1),0)
 
         
 class work(QThread):
